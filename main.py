@@ -14,7 +14,7 @@ def getMessage():
 @app.route("/")
 def webhook():
     bot.remove_webhook()
-    bot.set_webhook(url=os.getenv("WEBHOOK_URL") + API_TOKEN)
+    bot.set_webhook(url=os.getenv("WEBHOOK_URL"))
     return "!", 200
 
 @bot.message_handler(commands=['start', 'help'])
