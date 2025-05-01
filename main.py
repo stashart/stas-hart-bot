@@ -1,3 +1,16 @@
+import os
+import openai
+import telebot
+from flask import Flask, request
+
+API_TOKEN = os.getenv("TELEGRAM_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
+bot = telebot.TeleBot(API_TOKEN)
+openai.api_key = OPENAI_API_KEY
+app = Flask(__name__)
+
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_input = message.text.strip()
