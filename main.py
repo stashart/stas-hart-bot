@@ -33,7 +33,7 @@ def handle_message(message):
         bot.reply_to(message, reply)
 
     except Exception as e:
-        bot.reply_to(message, "Что-то пошло не так. Попробуй позже.")
+        bot.reply_to(message, f"Ошибка: {e}")
         print(f"Ошибка OpenAI: {e}")
 
 # Вебхук от Telegram
