@@ -38,6 +38,11 @@ def handle_message(message):
             with open("memory_core.txt", "r", encoding="utf-8") as f:
                 memory = f.read()
 
+            if not memory.strip():  # Если core пуст — берём из backup
+                print("🟡 Память пуста, читаем из backup...")
+                with open("memory_backup.txt", "r", encoding="utf-8") as f:
+                    memory = f.read()
+
             print("Запрос к OpenAI...")  # Лог перед вызовом
             system_prompt = (
                 "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
@@ -87,11 +92,6 @@ def view_memory():
     except Exception as e:
         return f"Ошибка чтения памяти: {e}", 500
 
-# Запуск
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-    
 # 🧠 При запуске: если памяти нет — восстановить из резервной
 try:
     if not os.path.exists("memory_core.txt") or os.stat("memory_core.txt").st_size == 0:
@@ -104,3 +104,8 @@ try:
         print("✅ Память уже есть, восстановление не требуется")
 except Exception as e:
     print(f"⚠️ Ошибка при восстановлении памяти: {e}")
+
+# Запуск
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
