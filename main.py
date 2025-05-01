@@ -70,7 +70,21 @@ def index():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
+# Просмотр памяти только для Стаса
+@app.route("/memory", methods=["GET"])
+def view_memory():
+    token = request.args.get("key")
+    if token != str(CREATOR_ID):
+        return "Доступ запрещён 🙅", 403
+    try:
+        with open("memory_core.txt", "r", encoding="utf-8") as f:
+            content = f.read()
+        return f"<pre>{content}</pre>", 200
+    except Exception as e:
+        return f"Ошибка чтения памяти: {e}", 500
+
 # Запуск
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+    
