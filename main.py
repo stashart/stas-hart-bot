@@ -7,56 +7,54 @@ from flask import Flask, request
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+CREATOR_ID = int(os.getenv("CREATOR_ID", "414284170"))  # Telegram ID Стаса
 
 # Настройка
 bot = telebot.TeleBot(API_TOKEN)
 openai.api_key = OPENAI_API_KEY
 app = Flask(__name__)
 
-# Обработка сообщений
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(content_types=['text'])
 def handle_message(message):
     user_input = message.text.strip()
+    user_id = message.from_user.id
 
-    # Сохраняем в общий лог
+    # Логируем все сообщения
     with open("logs/raw.txt", "a", encoding="utf-8") as f:
-        f.write(user_input + "\n")
+        f.write(f"{user_id}: {user_input}\n")
 
-    # Запоминаем по слову "запомни"
-    if "запомни" in user_input.lower():
+    # Запоминаем только если пишет Стас
+    if user_id == CREATOR_ID:
         with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
-        bot.reply_to(message, "Запомнил 🧠")
-        return
 
-    # Логируем вопросы
-    with open("logs/questions.txt", "a", encoding="utf-8") as f:
-        f.write(user_input + "\n")
+        with open("logs/questions.txt", "a", encoding="utf-8") as f:
+            f.write(user_input + "\n")
 
-    try:
-        with open("memory_core.txt", "r", encoding="utf-8") as f:
-            memory = f.read()
+        try:
+            with open("memory_core.txt", "r", encoding="utf-8") as f:
+                memory = f.read()
 
-        system_prompt = (
-            "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
-            "Используй накопленную память, чтобы помогать и подсказывать."
-        )
+            system_prompt = (
+                "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
+                "Используй накопленную память, чтобы помогать и подсказывать."
+            )
 
-        response = openai.ChatCompletion.create(
-            model="gpt-4-0613",
-            messages=[
-                {"role": "system", "content": system_prompt + "\n\n" + memory},
-                {"role": "user", "content": user_input}
-            ],
-            max_tokens=400,
-            temperature=0.8
-        )
+            response = openai.ChatCompletion.create(
+                model="gpt-4-0613",
+                messages=[
+                    {"role": "system", "content": system_prompt + "\n\n" + memory},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=400,
+                temperature=0.8
+            )
 
-        bot.reply_to(message, response.choices[0].message["content"])
+            bot.reply_to(message, response.choices[0].message["content"])
 
-    except Exception as e:
-        bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
-        print(f"Ошибка OpenAI: {e}")
+        except Exception as e:
+            bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
+            print(f"Ошибка OpenAI: {e}")
 
 # Webhook
 @app.route(f"/{API_TOKEN}", methods=["POST"])
