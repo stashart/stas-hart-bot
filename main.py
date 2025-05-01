@@ -19,15 +19,17 @@ def handle_message(message):
     user_input = message.text.strip()
     user_id = message.from_user.id
 
-    # Логируем все сообщения
+    # Логируем всё
     with open("logs/raw.txt", "a", encoding="utf-8") as f:
         f.write(f"{user_id}: {user_input}\n")
 
-    # Запоминаем только если пишет Стас
+    # Только Стаса запоминаем и отвечаем
     if user_id == CREATOR_ID:
+        # Память
         with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
+        # Лог вопросов
         with open("logs/questions.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
@@ -68,7 +70,7 @@ def index():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
-# Запуск Flask
+# Запуск
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
