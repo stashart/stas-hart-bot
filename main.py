@@ -1,43 +1,40 @@
 import os
 from flask import Flask, request
 import telebot
-import openai
+from openai import OpenAI
 
-# Загружаем токены
+# Загружаем токены из переменных окружения
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# Настраиваем бота и OpenAI
+# Инициализируем OpenAI и Telegram-бота
 bot = telebot.TeleBot(API_TOKEN)
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 app = Flask(__name__)
 
-# Обработка сообщений
+# Обработка входящих сообщений
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_input = message.text
-
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Можно заменить на gpt-4
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",  # Можно заменить на "gpt-4o"
             messages=[
-                {"role": "system", "content": "Ты — Стас, осознанный инвестор, духовный человек, который отвечает спокойно, глубоко и с доверием. Отвечай от первого лица, как будто ты — человек, а не бот."},
+                {"role": "system", "content": "Ты — Стас, осознанный инвестор, духовный человек, отвечающий спокойно, глубоко и с доверием. Отвечай от первого лица, как будто ты — человек, а не бот."},
                 {"role": "user", "content": user_input}
             ],
             max_tokens=400,
             temperature=0.8
         )
-
-        reply = response['choices'][0]['message']['content']
+        reply = response.choices[0].message.content
         bot.reply_to(message, reply)
-
     except Exception as e:
         bot.reply_to(message, "Что-то пошло не так. Попробуй позже.")
         print(f"Ошибка OpenAI: {e}")
 
-# Вебхук от Telegram
-@app.route(f'/{API_TOKEN}', methods=['POST'])
+# Обработка POST-запросов от Telegram
+@app.route(f"/{API_TOKEN}", methods=['POST'])
 def receive_update():
     bot.process_new_updates([
         telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
@@ -51,7 +48,7 @@ def set_webhook():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
-# Запуск Flask-приложения
+# Запуск Flask
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
