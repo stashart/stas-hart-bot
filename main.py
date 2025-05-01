@@ -23,7 +23,7 @@ app = Flask(__name__)
 
 # Сохраняем сообщение в файл
 def append_to_file(path, text):
-    with open(path, "a", encoding="utf-8") as f:
+    with open(path, "a+", encoding="utf-8") as f:
         f.write(text + "\n")
 
 # Обработка сообщений
@@ -34,23 +34,22 @@ def handle_all_messages(message):
     text = message.text.strip()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Логируем всё
+    # Сохраняем всё в raw лог
     raw_entry = f"[{timestamp}] {user_name} ({user_id}): {text}"
     append_to_file(raw_log, raw_entry)
 
-    # Только сообщения от создателя запоминаются
+    # Если пишет Стас — добавляем в память
     if user_id == CREATOR_ID:
         append_to_file(questions_log, text)
         append_to_file(memory_core, f"{user_name}: {text}")
 
-    # Генерируем ответ
     try:
         with open(memory_core, "r", encoding="utf-8") as f:
             memory_data = f.read()
 
         system_prompt = (
             "Ты — Хартия. Цифровой голос Стаса. Говори с глубиной, уверенностью, юмором и наблюдением.\n"
-            "Иногда подстёбывай, если уместно. Не выдавай себя за ассистента или помощника.\n"
+            "Иногда подкалывай, если уместно. Не выдавай себя за ассистента или помощника.\n"
             "Ты — как внутренний голос Стаса, но отвечаешь всем, кто пишет."
         )
 
@@ -58,7 +57,7 @@ def handle_all_messages(message):
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt + "\n\n" + memory_data},
-                {"role": "user", "content": text}
+                {"role": "user", "content": text},
             ],
             max_tokens=400,
             temperature=0.8
