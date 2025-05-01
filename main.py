@@ -34,16 +34,17 @@ def handle_message(message):
             f.write(user_input + "\n")
 
         try:
-            print("Чтение памяти...")  # Лог перед чтением
-            with open("memory_core.txt", "r", encoding="utf-8") as f:
-                memory = f.read()
+            print("Чтение памяти...")
 
-            if not memory.strip():  # Если core пуст — берём из backup
-                print("🟡 Память пуста, читаем из backup...")
-                with open("memory_backup.txt", "r", encoding="utf-8") as f:
-                    memory = f.read()
+            # Читаем backup и core вместе
+            with open("memory_backup.txt", "r", encoding="utf-8") as backup:
+                backup_data = backup.read()
+            with open("memory_core.txt", "r", encoding="utf-8") as core:
+                core_data = core.read()
 
-            print("Запрос к OpenAI...")  # Лог перед вызовом
+            memory = backup_data + "\n" + core_data
+
+            print("Запрос к OpenAI...")
             system_prompt = (
                 "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
                 "Используй накопленную память, чтобы помогать и подсказывать."
@@ -60,11 +61,11 @@ def handle_message(message):
             )
 
             reply_text = response.choices[0].message["content"]
-            print(f"Ответ OpenAI: {reply_text}")  # Лог ответа
+            print(f"Ответ OpenAI: {reply_text}")
             bot.reply_to(message, reply_text)
 
         except Exception as e:
-            print(f"Ошибка при обращении к OpenAI: {e}")  # Лог ошибки
+            print(f"Ошибка при обращении к OpenAI: {e}")
             bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
 
 # Webhook
@@ -79,16 +80,19 @@ def index():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
-# Просмотр памяти только для Стаса
+# Просмотр объединённой памяти только для Стаса
 @app.route("/memory", methods=["GET"])
 def view_memory():
     token = request.args.get("key")
     if token != str(CREATOR_ID):
         return "Доступ запрещён 🙅", 403
     try:
-        with open("memory_core.txt", "r", encoding="utf-8") as f:
-            content = f.read()
-        return f"<pre>{content}</pre>", 200
+        with open("memory_backup.txt", "r", encoding="utf-8") as backup:
+            backup_data = backup.read()
+        with open("memory_core.txt", "r", encoding="utf-8") as core:
+            core_data = core.read()
+        full_memory = backup_data + "\n" + core_data
+        return f"<pre>{full_memory}</pre>", 200
     except Exception as e:
         return f"Ошибка чтения памяти: {e}", 500
 
