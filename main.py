@@ -1,28 +1,70 @@
+# -*- coding: utf-8 -*-
 import os
 from flask import Flask, request
 import telebot
 from openai import OpenAI
+from datetime import datetime
 
-# Загружаем токены из переменных окружения
+# Настройка
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+CREATOR_ID = 414284170  # Telegram ID Стаса
 
-# Инициализируем OpenAI и Telegram-бота
 bot = telebot.TeleBot(API_TOKEN)
 client = OpenAI(api_key=OPENAI_API_KEY)
 app = Flask(__name__)
 
-# Обработка входящих сообщений
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    user_input = message.text
+# Подготовка директорий и файлов
+os.makedirs("memory", exist_ok=True)
+os.makedirs("voice", exist_ok=True)
+
+memory_core = "memory/memory_core.txt"
+questions_log = "memory/user_questions_log.txt"
+raw_log = "memory/memory_raw_log.txt"
+
+for file in [memory_core, questions_log, raw_log]:
+    if not os.path.exists(file):
+        open(file, "a", encoding="utf-8").close()
+
+# Функция: сохранить в файл
+def append_to_file(path, content):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] {content}\n")
+
+# Обработка всех текстов
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def handle_all_messages(message):
+    user_id = message.from_user.id
+    text = message.text.strip()
+    username = message.from_user.username or "no_username"
+
+    # Лог всего
+    append_to_file(raw_log, f"{username} ({user_id}): {text}")
+
+    # Разделение памяти
+    if user_id == CREATOR_ID:
+        append_to_file(memory_core, text)
+    else:
+        append_to_file(questions_log, f"{username}: {text}")
+
+    # Формируем system prompt
+    with open(memory_core, "r", encoding="utf-8") as f:
+        memory_data = f.read()
+
+    system_prompt = (
+        "Ты — Хартия. Цифровой голос Стаса. Говори с глубиной, уверенностью, юмором и наблюдением. "
+        "Иногда подстёбывай, если уместно. Ни в коем случае не выдавай себя за ассистента или помощника. "
+        "Ты — как внутренний голос Стаса, но отвечаешь всем, кто пишет."
+    )
+
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Можно заменить на "gpt-4o"
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Ты — Стас, осознанный инвестор, духовный человек, отвечающий спокойно, глубоко и с доверием. Отвечай от первого лица, как будто ты — человек, а не бот."},
-                {"role": "user", "content": user_input}
+                {"role": "system", "content": system_prompt + "\n\n" + memory_data},
+                {"role": "user", "content": text}
             ],
             max_tokens=400,
             temperature=0.8
@@ -33,22 +75,20 @@ def handle_message(message):
         bot.reply_to(message, "Что-то пошло не так. Попробуй позже.")
         print(f"Ошибка OpenAI: {e}")
 
-# Обработка POST-запросов от Telegram
+# Webhook от Telegram
 @app.route(f"/{API_TOKEN}", methods=['POST'])
-def receive_update():
+def webhook():
     bot.process_new_updates([
         telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
     ])
     return "ok", 200
 
-# Установка вебхука
 @app.route("/", methods=['GET'])
-def set_webhook():
+def index():
     bot.remove_webhook()
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
-# Запуск Flask
-if __name__ == "__main__":
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
