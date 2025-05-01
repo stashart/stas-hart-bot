@@ -92,3 +92,15 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
     
+# 🧠 При запуске: если памяти нет — восстановить из резервной
+try:
+    if not os.path.exists("memory_core.txt") or os.stat("memory_core.txt").st_size == 0:
+        with open("memory_backup.txt", "r", encoding="utf-8") as backup:
+            backup_data = backup.read()
+        with open("memory_core.txt", "w", encoding="utf-8") as f:
+            f.write(backup_data)
+        print("🔁 Восстановлена память из memory_backup.txt")
+    else:
+        print("✅ Память уже есть, восстановление не требуется")
+except Exception as e:
+    print(f"⚠️ Ошибка при восстановлении памяти: {e}")
