@@ -23,44 +23,44 @@ def handle_message(message):
     with open("logs/raw.txt", "a", encoding="utf-8") as f:
         f.write(f"{user_id}: {user_input}\n")
 
-# Только Стаса запоминаем и отвечаем
-if user_id == CREATOR_ID:
-    # Память
-    with open("memory_core.txt", "a", encoding="utf-8") as f:
-        f.write(user_input + "\n")
+    # Только Стаса запоминаем и отвечаем
+    if user_id == CREATOR_ID:
+        # Память
+        with open("memory_core.txt", "a", encoding="utf-8") as f:
+            f.write(user_input + "\n")
 
-    # Лог вопросов
-    with open("logs/questions.txt", "a", encoding="utf-8") as f:
-        f.write(user_input + "\n")
+        # Лог вопросов
+        with open("logs/questions.txt", "a", encoding="utf-8") as f:
+            f.write(user_input + "\n")
 
-    try:
-        print("Чтение памяти...")  # Лог перед чтением
-        with open("memory_core.txt", "r", encoding="utf-8") as f:
-            memory = f.read()
+        try:
+            print("Чтение памяти...")  # Лог перед чтением
+            with open("memory_core.txt", "r", encoding="utf-8") as f:
+                memory = f.read()
 
-        print("Запрос к OpenAI...")  # Лог перед вызовом
-        system_prompt = (
-            "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
-            "Используй накопленную память, чтобы помогать и подсказывать."
-        )
+            print("Запрос к OpenAI...")  # Лог перед вызовом
+            system_prompt = (
+                "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
+                "Используй накопленную память, чтобы помогать и подсказывать."
+            )
 
-        response = openai.ChatCompletion.create(
-            model="gpt-4-0613",
-            messages=[
-                {"role": "system", "content": system_prompt + "\n\n" + memory},
-                {"role": "user", "content": user_input}
-            ],
-            max_tokens=400,
-            temperature=0.8
-        )
+            response = openai.ChatCompletion.create(
+                model="gpt-4-0613",
+                messages=[
+                    {"role": "system", "content": system_prompt + "\n\n" + memory},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=400,
+                temperature=0.8
+            )
 
-        reply_text = response.choices[0].message["content"]
-        print(f"Ответ OpenAI: {reply_text}")  # Лог ответа
-        bot.reply_to(message, reply_text)
+            reply_text = response.choices[0].message["content"]
+            print(f"Ответ OpenAI: {reply_text}")  # Лог ответа
+            bot.reply_to(message, reply_text)
 
-    except Exception as e:
-        print(f"Ошибка при обращении к OpenAI: {e}")  # Лог ошибки
-        bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
+        except Exception as e:
+            print(f"Ошибка при обращении к OpenAI: {e}")  # Лог ошибки
+            bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
 
 # Webhook
 @app.route(f"/{API_TOKEN}", methods=["POST"])
