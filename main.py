@@ -17,8 +17,6 @@ app = Flask(__name__)
 
 @bot.message_handler(content_types=['text'])
 def handle_message(message):
-    import time  # не забудь оставить импорт вверху
-
     user_input = message.text.strip()
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -27,7 +25,7 @@ def handle_message(message):
     with open("logs/raw.txt", "a", encoding="utf-8") as f:
         f.write(f"{user_id}: {user_input}\n")
 
-    # Запоминаем, если это Стас или сообщение из канала @stasnastavnik
+    # Запоминаем, если это Стас или канал @stasnastavnik
     if user_id == CREATOR_ID or chat_id == -1001889831695:
         with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
@@ -47,7 +45,6 @@ def handle_message(message):
 
             memory = backup_data + "\n" + core_data
 
-            # Логируем объём и источник
             print("🔁 Используем: backup + core")
             print(f"🔢 Размер памяти: {len(memory)} символов")
 
@@ -95,7 +92,7 @@ def index():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
-# Просмотр объединённой памяти
+# Просмотр памяти
 @app.route("/memory", methods=["GET"])
 def view_memory():
     token = request.args.get("key")
