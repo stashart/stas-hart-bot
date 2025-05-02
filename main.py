@@ -103,6 +103,16 @@ def view_memory():
     except Exception as e:
         return f"Ошибка чтения памяти: {e}", 500
 
+# Просмотр размера памяти
+@app.route("/memory-size", methods=["GET"])
+def memory_size():
+    try:
+        core_size = os.path.getsize("memory_core.txt")
+        backup_size = os.path.getsize("memory_backup.txt")
+        return f"Размер памяти:\nCore: {core_size} байт\nBackup: {backup_size} байт", 200
+    except Exception as e:
+        return f"Ошибка при получении размера: {e}", 500
+
 # 🧠 Восстановление core из backup при запуске
 try:
     if not os.path.exists("memory_core.txt") or os.stat("memory_core.txt").st_size == 0:
