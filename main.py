@@ -24,9 +24,9 @@ def handle_message(message):
     with open("logs/raw.txt", "a", encoding="utf-8") as f:
         f.write(f"{user_id}: {user_input}\n")
 
-    # Только Стаса запоминаем и отвечаем
-    if user_id == CREATOR_ID:
-        with open("memory_core.txt", "a", encoding="utf-8") as f:
+# Запоминаем Стаса и его канал
+if user_id == CREATOR_ID or message.chat.id == -1001889831695:  # ID твоего канала
+    with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
         with open("logs/questions.txt", "a", encoding="utf-8") as f:
