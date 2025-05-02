@@ -9,6 +9,7 @@ API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 CREATOR_ID = int(os.getenv("CREATOR_ID", "414284170"))  # Telegram ID Стаса
+CHANNEL_ID = -1001889831695  # ID канала @stasnastavnik
 
 # Настройка
 bot = telebot.TeleBot(API_TOKEN)
@@ -25,8 +26,8 @@ def handle_message(message):
     with open("logs/raw.txt", "a", encoding="utf-8") as f:
         f.write(f"{user_id}: {user_input}\n")
 
-    # Запоминаем, если это Стас или канал @stasnastavnik
-    if user_id == CREATOR_ID or chat_id == -1001889831695:
+    # Запоминаем, если это Стас или канал
+    if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
         print("Файл существует:", os.path.exists("memory_core.txt"))
         print("Размер файла:", os.path.getsize("memory_core.txt"), "байт")
         
