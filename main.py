@@ -27,6 +27,9 @@ def handle_message(message):
 
     # Запоминаем, если это Стас или канал @stasnastavnik
     if user_id == CREATOR_ID or chat_id == -1001889831695:
+        print("Файл существует:", os.path.exists("memory_core.txt"))
+        print("Размер файла:", os.path.getsize("memory_core.txt"), "байт")
+        
         with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
