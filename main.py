@@ -1,4 +1,5 @@
 import os
+import time
 import openai
 import telebot
 from flask import Flask, request
@@ -25,24 +26,27 @@ def handle_message(message):
 
     # Только Стаса запоминаем и отвечаем
     if user_id == CREATOR_ID:
-        # Память
         with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
-        # Лог вопросов
         with open("logs/questions.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
         try:
             print("Чтение памяти...")
 
-            # Читаем backup и core вместе
             with open("memory_backup.txt", "r", encoding="utf-8") as backup:
                 backup_data = backup.read()
             with open("memory_core.txt", "r", encoding="utf-8") as core:
                 core_data = core.read()
 
             memory = backup_data + "\n" + core_data
+
+            # Логируем объём и источник
+            print("🔁 Используем: backup + core")
+            print(f"🔢 Размер памяти: {len(memory)} символов")
+
+            start_time = time.time()
 
             print("Запрос к OpenAI...")
             system_prompt = (
@@ -60,8 +64,11 @@ def handle_message(message):
                 temperature=0.8
             )
 
+            elapsed = time.time() - start_time
             reply_text = response.choices[0].message["content"]
             print(f"Ответ OpenAI: {reply_text}")
+            print(f"⏱️ Время генерации: {elapsed:.2f} сек")
+
             bot.reply_to(message, reply_text)
 
         except Exception as e:
@@ -80,7 +87,7 @@ def index():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
-# Просмотр объединённой памяти только для Стаса
+# Просмотр объединённой памяти
 @app.route("/memory", methods=["GET"])
 def view_memory():
     token = request.args.get("key")
@@ -96,7 +103,7 @@ def view_memory():
     except Exception as e:
         return f"Ошибка чтения памяти: {e}", 500
 
-# 🧠 При запуске: если памяти нет — восстановить из резервной
+# 🧠 Восстановление core из backup при запуске
 try:
     if not os.path.exists("memory_core.txt") or os.stat("memory_core.txt").st_size == 0:
         with open("memory_backup.txt", "r", encoding="utf-8") as backup:
