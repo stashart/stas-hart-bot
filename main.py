@@ -17,20 +17,25 @@ app = Flask(__name__)
 
 @bot.message_handler(content_types=['text'])
 def handle_message(message):
+    import time  # не забудь оставить импорт вверху
+
     user_input = message.text.strip()
     user_id = message.from_user.id
+    chat_id = message.chat.id
 
     # Логируем всё
     with open("logs/raw.txt", "a", encoding="utf-8") as f:
         f.write(f"{user_id}: {user_input}\n")
 
-# Запоминаем Стаса и его канал
-if user_id == CREATOR_ID or message.chat.id == -1001889831695:  # ID твоего канала
-    with open("memory_core.txt", "a", encoding="utf-8") as f:
+    # Запоминаем, если это Стас или сообщение из канала @stasnastavnik
+    if user_id == CREATOR_ID or chat_id == -1001889831695:
+        with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
-        with open("logs/questions.txt", "a", encoding="utf-8") as f:
-            f.write(user_input + "\n")
+        # Только если пишет Стас — логируем как вопрос
+        if user_id == CREATOR_ID:
+            with open("logs/questions.txt", "a", encoding="utf-8") as f:
+                f.write(user_input + "\n")
 
         try:
             print("Чтение памяти...")
@@ -69,11 +74,14 @@ if user_id == CREATOR_ID or message.chat.id == -1001889831695:  # ID твоег�
             print(f"Ответ OpenAI: {reply_text}")
             print(f"⏱️ Время генерации: {elapsed:.2f} сек")
 
-            bot.reply_to(message, reply_text)
+            # Отвечаем только Стасу
+            if user_id == CREATOR_ID:
+                bot.reply_to(message, reply_text)
 
         except Exception as e:
             print(f"Ошибка при обращении к OpenAI: {e}")
-            bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
+            if user_id == CREATOR_ID:
+                bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
 
 # Webhook
 @app.route(f"/{API_TOKEN}", methods=["POST"])
