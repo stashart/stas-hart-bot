@@ -3,6 +3,9 @@ import time
 import openai
 import telebot
 from flask import Flask, request
+import speech_recognition as sr
+from pydub import AudioSegment
+import requests
 
 # Загружаем токены
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
