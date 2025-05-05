@@ -30,7 +30,7 @@ def handle_message(message):
     if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
         print("Файл существует:", os.path.exists("memory_core.txt"))
         print("Размер файла:", os.path.getsize("memory_core.txt"), "байт")
-        
+    
         with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
