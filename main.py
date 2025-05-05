@@ -113,7 +113,7 @@ def handle_voice(message):
         # Расшифровка через Deepgram
         dg_client = Deepgram(DEEPGRAM_API_KEY)
         with open(ogg_path, 'rb') as audio:
-            source = {'buffer': audio, 'mimetype': 'audio/ogg'}
+            'mimetype': 'audio/ogg; codecs=opus'
             response = dg_client.transcription.sync_prerecorded(source, {'model': 'nova', 'language': 'ru'})
 
         user_input = response['results']['channels'][0]['alternatives'][0]['transcript']
