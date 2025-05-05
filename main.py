@@ -94,7 +94,7 @@ def handle_message(message):
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
     try:
-        user_id = message.from_user.id if message.from_user else None
+        user_id = message.from_user.id
         chat_id = message.chat.id
 
         print("📥 Голосовое сообщение получено")
@@ -110,11 +110,9 @@ def handle_voice(message):
         with open(ogg_path, 'wb') as f:
             f.write(file)
 
-        # Конвертация в WAV через ffmpeg
         from pydub import AudioSegment
         AudioSegment.from_file(ogg_path).export(wav_path, format="wav")
 
-        # Отправка в Whisper
         with open(wav_path, "rb") as audio_file:
             transcript = openai.Audio.transcribe("whisper-1", audio_file)
 
@@ -123,20 +121,18 @@ def handle_voice(message):
 
         # Логируем
         with open("logs/raw.txt", "a", encoding="utf-8") as f:
-            f.write(f"{chat_id or user_id}: {user_input}\n")
+            f.write(f"{user_id}: {user_input}\n")
 
-        is_from_stas = user_id == CREATOR_ID
-        is_from_channel = message.forward_from_chat and message.forward_from_chat.id == CHANNEL_ID
-
-        if is_from_stas or chat_id == CHANNEL_ID or is_from_channel:
+        # Запоминаем — как у тебя в тексте
+        if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
             with open("memory_core.txt", "a", encoding="utf-8") as f:
                 f.write(user_input + "\n")
 
-            if is_from_stas:
+            if user_id == CREATOR_ID:
                 with open("logs/questions.txt", "a", encoding="utf-8") as f:
                     f.write(user_input + "\n")
 
-        # Генерация ответа
+        # Читаем память
         with open("memory_backup.txt", "r", encoding="utf-8") as backup:
             backup_data = backup.read()
         with open("memory_core.txt", "r", encoding="utf-8") as core:
@@ -161,12 +157,12 @@ def handle_voice(message):
         reply_text = response.choices[0].message["content"]
         print("🎤 Ответ на голосовое:", reply_text)
 
-        if is_from_stas:
+        if user_id == CREATOR_ID:
             bot.reply_to(message, reply_text)
 
     except Exception as e:
         print(f"Ошибка при обработке голосового: {e}")
-        if message.from_user and message.from_user.id == CREATOR_ID:
+        if user_id == CREATOR_ID:
             bot.reply_to(message, "⚠️ Не получилось обработать голосовое")
             
 # Webhook
