@@ -3,6 +3,13 @@ import time
 import openai
 import telebot
 from flask import Flask, request
+import subprocess
+
+try:
+    result = subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    print("🎉 ffmpeg найден:\n", result.stdout.decode())
+except FileNotFoundError:
+    print("❌ ffmpeg НЕ установлен")
 
 # Загружаем токены
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
