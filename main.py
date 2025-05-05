@@ -135,14 +135,22 @@ try:
 except Exception as e:
     print(f"⚠️ Ошибка при восстановлении памяти: {e}")
 
-# Запуск
+# 📍 Запуск
 if __name__ == "__main__":
+    # Установка webhook при старте, если не задан
+    try:
+        bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
+        print("✅ Webhook установлен автоматически")
+    except Exception as e:
+        print(f"❌ Ошибка установки webhook: {e}")
+
+    print("🔎 Проверка памяти при запуске")
+    print("Файл memory_core.txt существует:", os.path.exists("memory_core.txt"))
+    if os.path.exists("memory_core.txt"):
+        print("Размер:", os.path.getsize("memory_core.txt"), "байт")
+    else:
+        print("Файл не найден!")
+
+    # Запускаем Flask-сервер
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
-# Установка webhook при старте, если не задан
-try:
-    bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
-    print("✅ Webhook установлен автоматически")
-except Exception as e:
-    print(f"❌ Ошибка установки webhook: {e}")
