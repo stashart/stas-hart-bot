@@ -4,6 +4,8 @@ import openai
 import telebot
 from flask import Flask, request
 import subprocess
+from deepgram import Deepgram
+import asyncio
 
 try:
     result = subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
