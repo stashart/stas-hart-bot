@@ -91,34 +91,78 @@ def handle_message(message):
 
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-
-    print("Получено голосовое сообщение")
-
     try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+
+        print("📥 Голосовое сообщение получено")
+
+        # Скачиваем файл
         file_info = bot.get_file(message.voice.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
+        file = bot.download_file(file_info.file_path)
 
-        # Сохраняем файл
-        with open("voice.ogg", "wb") as f:
-            f.write(downloaded_file)
+        ogg_path = f"voice/{message.voice.file_id}.ogg"
+        wav_path = f"voice/{message.voice.file_id}.wav"
 
-        # Отправляем на Whisper
-        audio_file = open("voice.ogg", "rb")
-        transcript = openai.Audio.transcribe("whisper-1", audio_file)
+        os.makedirs("voice", exist_ok=True)
+        with open(ogg_path, 'wb') as f:
+            f.write(file)
 
-        text = transcript["text"].strip()
-        print("🗣️ Распознано:", text)
+        # Конвертация в WAV через ffmpeg
+        from pydub import AudioSegment
+        AudioSegment.from_file(ogg_path).export(wav_path, format="wav")
 
-        # Дальше обрабатываем как обычный текст от Стаса или канала
-        message.text = text
-        handle_message(message)
+        # Отправка в Whisper
+        with open(wav_path, "rb") as audio_file:
+            transcript = openai.Audio.transcribe("whisper-1", audio_file)
+
+        user_input = transcript["text"]
+        print(f"🗣️ Расшифровка: {user_input}")
+
+        # Дальше — как с обычным текстом
+        with open("logs/raw.txt", "a", encoding="utf-8") as f:
+            f.write(f"{user_id}: {user_input}\n")
+
+        if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
+            with open("memory_core.txt", "a", encoding="utf-8") as f:
+                f.write(user_input + "\n")
+
+            if user_id == CREATOR_ID:
+                with open("logs/questions.txt", "a", encoding="utf-8") as f:
+                    f.write(user_input + "\n")
+
+        # Запрос к OpenAI
+        with open("memory_backup.txt", "r", encoding="utf-8") as backup:
+            backup_data = backup.read()
+        with open("memory_core.txt", "r", encoding="utf-8") as core:
+            core_data = core.read()
+        memory = backup_data + "\n" + core_data
+
+        system_prompt = (
+            "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
+            "Используй накопленную память, чтобы помогать и подсказывать."
+        )
+
+        response = openai.ChatCompletion.create(
+            model="gpt-4-0613",
+            messages=[
+                {"role": "system", "content": system_prompt + "\n\n" + memory},
+                {"role": "user", "content": user_input}
+            ],
+            max_tokens=400,
+            temperature=0.8
+        )
+
+        reply_text = response.choices[0].message["content"]
+        print("🎤 Ответ на голосовое:", reply_text)
+
+        if user_id == CREATOR_ID:
+            bot.reply_to(message, reply_text)
 
     except Exception as e:
-        print("Ошибка при обработке голосового:", e)
+        print(f"Ошибка при обработке голосового: {e}")
         if user_id == CREATOR_ID:
-            bot.reply_to(message, "Не смог распознать голосовое 🙃")
+            bot.reply_to(message, "⚠️ Не получилось обработать голосовое")
             
 # Webhook
 @app.route(f"/{API_TOKEN}", methods=["POST"])
