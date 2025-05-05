@@ -23,6 +23,8 @@ bot = telebot.TeleBot(API_TOKEN)
 openai.api_key = OPENAI_API_KEY
 app = Flask(__name__)
 
+# ===== ОБРАБОТКА ТЕКСТОВЫХ СМС =====
+
 @bot.message_handler(content_types=['text'])
 def handle_message(message):
     user_input = message.text.strip()
@@ -92,7 +94,7 @@ def handle_message(message):
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
     try:
-        user_id = message.from_user.id
+        user_id = message.from_user.id if message.from_user else None
         chat_id = message.chat.id
 
         print("📥 Голосовое сообщение получено")
@@ -119,19 +121,22 @@ def handle_voice(message):
         user_input = transcript["text"]
         print(f"🗣️ Расшифровка: {user_input}")
 
-        # Дальше — как с обычным текстом
+        # Логируем
         with open("logs/raw.txt", "a", encoding="utf-8") as f:
-            f.write(f"{user_id}: {user_input}\n")
+            f.write(f"{chat_id or user_id}: {user_input}\n")
 
-        if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
+        is_from_stas = user_id == CREATOR_ID
+        is_from_channel = message.forward_from_chat and message.forward_from_chat.id == CHANNEL_ID
+
+        if is_from_stas or chat_id == CHANNEL_ID or is_from_channel:
             with open("memory_core.txt", "a", encoding="utf-8") as f:
                 f.write(user_input + "\n")
 
-            if user_id == CREATOR_ID:
+            if is_from_stas:
                 with open("logs/questions.txt", "a", encoding="utf-8") as f:
                     f.write(user_input + "\n")
 
-        # Запрос к OpenAI
+        # Генерация ответа
         with open("memory_backup.txt", "r", encoding="utf-8") as backup:
             backup_data = backup.read()
         with open("memory_core.txt", "r", encoding="utf-8") as core:
@@ -156,12 +161,12 @@ def handle_voice(message):
         reply_text = response.choices[0].message["content"]
         print("🎤 Ответ на голосовое:", reply_text)
 
-        if user_id == CREATOR_ID:
+        if is_from_stas:
             bot.reply_to(message, reply_text)
 
     except Exception as e:
         print(f"Ошибка при обработке голосового: {e}")
-        if user_id == CREATOR_ID:
+        if message.from_user and message.from_user.id == CREATOR_ID:
             bot.reply_to(message, "⚠️ Не получилось обработать голосовое")
             
 # Webhook
