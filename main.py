@@ -104,32 +104,28 @@ def handle_voice(message):
         file = bot.download_file(file_info.file_path)
 
         ogg_path = f"voice/{message.voice.file_id}.ogg"
-        wav_path = f"voice/{message.voice.file_id}.wav"
-
         os.makedirs("voice", exist_ok=True)
         with open(ogg_path, 'wb') as f:
             f.write(file)
 
-        from pydub import AudioSegment
-        AudioSegment.from_file(ogg_path).export(wav_path, format="wav")
+        # Расшифровка через Deepgram
+        dg_client = Deepgram(DEEPGRAM_API_KEY)
+        with open(ogg_path, 'rb') as audio:
+            source = {'buffer': audio, 'mimetype': 'audio/ogg'}
+            response = dg_client.transcription.sync_prerecorded(source, {'model': 'nova', 'language': 'ru'})
 
-        with open(wav_path, "rb") as audio_file:
-            transcript = openai.Audio.transcribe("whisper-1", audio_file)
-
-        user_input = transcript["text"]
-        print(f"🗣️ Расшифровка: {user_input}")
+        user_input = response['results']['channels'][0]['alternatives'][0]['transcript']
+        print(f"🗣️ Расшифровка (Deepgram): {user_input}")
 
         # Логируем
         with open("logs/raw.txt", "a", encoding="utf-8") as f:
             f.write(f"{user_id}: {user_input}\n")
 
-        # Запоминаем — как у тебя в тексте
+        # Запоминаем
         if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
-
             print("📌 Запись в память:", user_input)
             with open("memory_core.txt", "a", encoding="utf-8") as f:
                 f.write(user_input + "\n")
-
             if user_id == CREATOR_ID:
                 with open("logs/questions.txt", "a", encoding="utf-8") as f:
                     f.write(user_input + "\n")
@@ -163,7 +159,7 @@ def handle_voice(message):
             bot.reply_to(message, reply_text)
 
     except Exception as e:
-        print(f"Ошибка при обработке голосового: {e}")
+        print(f"Ошибка при обработке голосового через Deepgram: {e}")
         if user_id == CREATOR_ID:
             bot.reply_to(message, "⚠️ Не получилось обработать голосовое")
             
