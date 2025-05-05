@@ -166,7 +166,7 @@ def handle_voice(message):
         if user_id == CREATOR_ID:
             bot.reply_to(message, reply_text)
 
-        except Exception as e:
+    except Exception as e:
         import traceback
         error_text = traceback.format_exc()
         print(f"Ошибка при обработке голосового через Deepgram:\n{error_text}")
