@@ -111,7 +111,7 @@ def handle_voice(message):
             f.write(file)
 
         # Расшифровка через Deepgram
-        dg_client = Deepgram(DEEPGRAM_API_KEY)
+        dg_client = Deepgram(os.environ.get("DEEPGRAM_API_KEY"))
         with open(ogg_path, 'rb') as audio:
             source = {'buffer': audio, 'mimetype': 'audio/ogg; codecs=opus'}
             response = dg_client.transcription.sync_prerecorded(
@@ -122,6 +122,7 @@ def handle_voice(message):
         user_input = response['results']['channels'][0]['alternatives'][0].get('transcript', '').strip()
         if not user_input:
             raise ValueError("Пустая расшифровка от Deepgram")
+
         print(f"🗣️ Расшифровка (Deepgram): {user_input}")
         
         # Логируем
