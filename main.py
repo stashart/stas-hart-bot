@@ -139,3 +139,10 @@ except Exception as e:
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+# Установка webhook при старте, если не задан
+try:
+    bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
+    print("✅ Webhook установлен автоматически")
+except Exception as e:
+    print(f"❌ Ошибка установки webhook: {e}")
