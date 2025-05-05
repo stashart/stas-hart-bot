@@ -4,8 +4,7 @@ import openai
 import telebot
 from flask import Flask, request
 import subprocess
-from deepgram import Deepgram
-import asyncio
+from deepgram import DeepgramClient, FileSource, PrerecordedOptions
 
 try:
     result = subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -110,21 +109,26 @@ def handle_voice(message):
         with open(ogg_path, 'wb') as f:
             f.write(file)
 
-        # Расшифровка через Deepgram
-        dg_client = Deepgram(os.environ.get("DEEPGRAM_API_KEY"))
-        with open(ogg_path, 'rb') as audio:
-            source = {'buffer': audio, 'mimetype': 'audio/ogg; codecs=opus'}
-            response = dg_client.transcription.sync_prerecorded(
-                source,
-                {'model': 'nova', 'language': 'ru'}
-            )
+        # Deepgram SDK v3 — асинхронная расшифровка
+        dg = DeepgramClient(os.getenv("DEEPGRAM_API_KEY"))
 
-        user_input = response['results']['channels'][0]['alternatives'][0].get('transcript', '').strip()
+        with open(ogg_path, 'rb') as audio:
+            source: FileSource = {
+                "buffer": audio,
+                "mimetype": "audio/ogg; codecs=opus"
+            }
+            options: PrerecordedOptions = {
+                "model": "nova",
+                "language": "ru"
+            }
+            response = dg.listen.prerecorded.v("1").transcribe_file(source, options)
+
+        user_input = response["results"]["channels"][0]["alternatives"][0].get("transcript", "").strip()
         if not user_input:
             raise ValueError("Пустая расшифровка от Deepgram")
 
         print(f"🗣️ Расшифровка (Deepgram): {user_input}")
-        
+
         # Логируем
         with open("logs/raw.txt", "a", encoding="utf-8") as f:
             f.write(f"{user_id}: {user_input}\n")
@@ -145,6 +149,7 @@ def handle_voice(message):
             core_data = core.read()
         memory = backup_data + "\n" + core_data
 
+        # Ответ от OpenAI
         system_prompt = (
             "Ты — Хартия. Цифровой голос Стаса. Говори как он: с уверенностью, наблюдением, лёгким юмором.\n"
             "Используй накопленную память, чтобы помогать и подсказывать."
@@ -169,7 +174,7 @@ def handle_voice(message):
     except Exception as e:
         import traceback
         error_text = traceback.format_exc()
-        print(f"Ошибка при обработке голосового через Deepgram:\n{error_text}")
+        print(f"Ошибка при обработке голосового:\n{error_text}")
         if user_id == CREATOR_ID:
             bot.reply_to(message, "⚠️ Не получилось обработать голосовое\n" + str(e))
             
