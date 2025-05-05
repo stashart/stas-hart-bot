@@ -94,7 +94,7 @@ def handle_message(message):
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
     try:
-        user_id = message.from_user.id
+        user_id = message.from_user.id if message.from_user else CREATOR_ID
         chat_id = message.chat.id
 
         print("📥 Голосовое сообщение получено")
@@ -125,6 +125,8 @@ def handle_voice(message):
 
         # Запоминаем — как у тебя в тексте
         if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
+
+            print("📌 Запись в память:", user_input)
             with open("memory_core.txt", "a", encoding="utf-8") as f:
                 f.write(user_input + "\n")
 
