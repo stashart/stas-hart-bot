@@ -30,25 +30,22 @@ def handle_message(message):
     if user_id == CREATOR_ID or chat_id == CHANNEL_ID:
         print("Файл существует:", os.path.exists("memory_core.txt"))
         print("Размер файла:", os.path.getsize("memory_core.txt"), "байт")
-    
+
         with open("memory_core.txt", "a", encoding="utf-8") as f:
             f.write(user_input + "\n")
 
-        # Только если пишет Стас — логируем как вопрос
         if user_id == CREATOR_ID:
             with open("logs/questions.txt", "a", encoding="utf-8") as f:
                 f.write(user_input + "\n")
 
         try:
             print("Чтение памяти...")
-
             with open("memory_backup.txt", "r", encoding="utf-8") as backup:
                 backup_data = backup.read()
             with open("memory_core.txt", "r", encoding="utf-8") as core:
                 core_data = core.read()
 
             memory = backup_data + "\n" + core_data
-
             print("🔁 Используем: backup + core")
             print(f"🔢 Размер памяти: {len(memory)} символов")
 
@@ -75,7 +72,6 @@ def handle_message(message):
             print(f"Ответ OpenAI: {reply_text}")
             print(f"⏱️ Время генерации: {elapsed:.2f} сек")
 
-            # Отвечаем только Стасу
             if user_id == CREATOR_ID:
                 bot.reply_to(message, reply_text)
 
@@ -137,7 +133,6 @@ except Exception as e:
 
 # 📍 Запуск
 if __name__ == "__main__":
-    # Установка webhook при старте, если не задан
     try:
         bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
         print("✅ Webhook установлен автоматически")
@@ -151,6 +146,5 @@ if __name__ == "__main__":
     else:
         print("Файл не найден!")
 
-    # Запускаем Flask-сервер
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
