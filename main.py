@@ -3,9 +3,6 @@ import time
 import openai
 import telebot
 from flask import Flask, request
-import speech_recognition as sr
-from pydub import AudioSegment
-import requests
 
 # Загружаем токены
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -83,6 +80,39 @@ def handle_message(message):
             if user_id == CREATOR_ID:
                 bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
 
+# ===== ОБРАБОТКА ГОЛОСОВЫХ =====
+
+@bot.message_handler(content_types=['voice'])
+def handle_voice(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    print("Получено голосовое сообщение")
+
+    try:
+        file_info = bot.get_file(message.voice.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+
+        # Сохраняем файл
+        with open("voice.ogg", "wb") as f:
+            f.write(downloaded_file)
+
+        # Отправляем на Whisper
+        audio_file = open("voice.ogg", "rb")
+        transcript = openai.Audio.transcribe("whisper-1", audio_file)
+
+        text = transcript["text"].strip()
+        print("🗣️ Распознано:", text)
+
+        # Дальше обрабатываем как обычный текст от Стаса или канала
+        message.text = text
+        handle_message(message)
+
+    except Exception as e:
+        print("Ошибка при обработке голосового:", e)
+        if user_id == CREATOR_ID:
+            bot.reply_to(message, "Не смог распознать голосовое 🙃")
+            
 # Webhook
 @app.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
