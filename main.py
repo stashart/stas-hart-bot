@@ -131,7 +131,7 @@ def handle_voice(message):
                 "model": "nova",
                 "language": "ru"
             }
-            response = dg.listen.prerecorded.transcribe_file(source=source, options=options)
+            response = dg.listen.prerecorded.v("1").transcribe_file(source=source, options=options)
 
         user_input = response["results"]["channels"][0]["alternatives"][0].get("transcript", "").strip()
         if not user_input:
