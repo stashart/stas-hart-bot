@@ -5,8 +5,8 @@ import openai
 import telebot
 from flask import Flask, request
 import subprocess
-from deepgram import Deepgram
-import asyncio
+from deepgram import Deepgram  # 🎤 Deepgram SDK v2
+import asyncio                  # ⏱ async обработка
 
 # === Константы и Инициализация переменных среды ===
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")              # 🔑 Токен Telegram-бота
@@ -94,6 +94,20 @@ def handle_text(message):
                 bot.reply_to(message, "⚠️ Что-то пошло не так. Попробуй позже 🙃")
 
 # === Обработка голосовых сообщений ===
+
+# 🎙️ Асинхронная функция расшифровки аудио через Deepgram v2
+async def transcribe_voice(file_path):
+    dg = Deepgram(DEEPGRAM_API_KEY)
+    with open(file_path, 'rb') as audio:
+        source = {'buffer': audio, 'mimetype': 'audio/ogg'}
+        options = {
+            'language': 'ru',
+            'punctuate': True,
+            'model': 'general'
+        }
+        response = await dg.transcription.prerecorded(source, options)
+        return response['results']['channels'][0]['alternatives'][0]['transcript']
+
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
     try:
@@ -105,33 +119,27 @@ def handle_voice(message):
 
         ogg_path = f"voice/{message.voice.file_id}.ogg"
         with open(ogg_path, 'wb') as f:
-            f.write(file)                      # 💾 Сохраняем голосовое локально
+            f.write(file)
 
-        dg = DeepgramClient(DEEPGRAM_API_KEY)
-        with open(ogg_path, 'rb') as audio:
-            source: FileSource = {"buffer": audio, "mimetype": "audio/ogg; codecs=opus"}
-            options: PrerecordedOptions = {"model": "nova", "language": "ru"}
-            response = dg.listen.prerecorded.transcribe_file(source=source, options=options)
+        # 🔁 Расшифровка через Deepgram SDK v2
+        user_input = asyncio.run(transcribe_voice(ogg_path))
 
-        user_input = response["results"]["channels"][0]["alternatives"][0].get("transcript", "").strip()
-        if not user_input:
-            raise ValueError("Пустая расшифровка от Deepgram")
-
-        log_raw(user_id, user_input)           # 📝 Логируем
+        # 📌 Вся остальная логика остаётся:
+        log_raw(user_id, user_input)
 
         if is_creator_or_channel(user_id, chat_id):
-            save_to_memory(user_input)         # 📌 Запоминаем
+            save_to_memory(user_input)
             if user_id == CREATOR_ID:
-                log_question(user_input)       # 🗃️ Сохраняем как вопрос
+                log_question(user_input)
 
-            memory = read_memory()             # 🧠 Читаем память
-            reply_text = ask_openai(user_input, memory)  # 🤖 GPT
+            memory = read_memory()
+            reply_text = ask_openai(user_input, memory)
             bot.reply_to(message, reply_text)
 
     except Exception as e:
-        print(f"Ошибка при обработке голосового:\n{traceback.format_exc()}")
+        print(f\"Ошибка при обработке голосового:\\n{traceback.format_exc()}\")
         if 'user_id' in locals() and user_id == CREATOR_ID:
-            bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
+            bot.reply_to(message, f\"⚠️ Не получилось обработать голосовое\\n{e}\")
 
 # === Webhook и просмотр памяти ===
 @app.route(f"/{API_TOKEN}", methods=["POST"])
