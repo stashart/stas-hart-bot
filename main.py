@@ -5,8 +5,8 @@ import openai
 import telebot
 from flask import Flask, request
 import subprocess
-from deepgram import DeepgramClient, FileSource, PrerecordedOptions
-import traceback
+from deepgram import Deepgram
+import asyncio
 
 # === Константы и Инициализация переменных среды ===
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")              # 🔑 Токен Telegram-бота
