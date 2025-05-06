@@ -144,8 +144,9 @@ def handle_voice(message):
 # === Webhook и просмотр памяти ===
 @app.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
+    print("📩 Пришёл webhook от Telegram")  # 🔍 Показываем, что Telegram стучится
     bot.process_new_updates([
-        telebot.types.Update.de_json(request.stream.read().decode("utf-8"))  # 🔄 Обработка входящих апдейтов
+        telebot.types.Update.de_json(request.stream.read().decode("utf-8"))  # 🔄 Обработка апдейтов
     ])
     return "ok", 200
 
