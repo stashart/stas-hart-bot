@@ -110,7 +110,8 @@ def handle_voice(message):
             f.write(file)
 
         # Deepgram SDK v3 — асинхронная расшифровка
-        dg = DeepgramClient(api_key=os.getenv("DEEPGRAM_API_KEY"))
+        api_key = os.getenv("DEEPGRAM_API_KEY")
+        dg = DeepgramClient(api_key)
 
         with open(ogg_path, 'rb') as audio:
             source: FileSource = {
