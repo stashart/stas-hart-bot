@@ -139,7 +139,7 @@ def handle_voice(message):
     except Exception as e:
         print(f"Ошибка при обработке голосового:\n{traceback.format_exc()}")
         if 'user_id' in locals() and user_id == CREATOR_ID:
-            bot.reply_to(message, f\"⚠️ Не получилось обработать голосовое\\n{e}\")
+            bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
 
 # === Webhook и просмотр памяти ===
 @app.route(f"/{API_TOKEN}", methods=["POST"])
