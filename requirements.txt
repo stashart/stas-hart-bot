@@ -1,7 +1,7 @@
-openai==0.28.1
-Flask==2.3.2
-pyTelegramBotAPI==4.12.0
-pydub
-ffmpeg-python
-SpeechRecognition
-deepgram-sdk==2.12.0
+openai==0.28.1            # Подключение к OpenAI API GPT
+Flask==2.3.2              # Веб-сервер (например, webhook)
+pyTelegramBotAPI==4.12.0  # Работа с Telegram-ботом через telebot
+pydub                     # Аудиообработка (конвертация, склейка)
+ffmpeg-python             # Обёртка для FFmpeg, работа с .ogg/.wav
+SpeechRecognition         # Распознавание речи (Google, Sphinx и т.д.)
+deepgram-sdk==2.12.0      # Новая SDK для Deepgram (Nova-3 модель)
