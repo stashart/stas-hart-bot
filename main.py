@@ -6,6 +6,7 @@ from flask import Flask, request
 import subprocess
 from deepgram import DeepgramClient, FileSource, PrerecordedOptions
 
+# Проверка наличия ffmpeg
 try:
     result = subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print("🎉 ffmpeg найден:\n", result.stdout.decode())
@@ -18,6 +19,13 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 CREATOR_ID = int(os.getenv("CREATOR_ID", "414284170"))  # Telegram ID Стаса
 CHANNEL_ID = -1001889831695  # ID канала @stasnastavnik
+
+# Deepgram
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
+if not DEEPGRAM_API_KEY:
+    print("❌ Не найден DEEPGRAM_API_KEY в переменных окружения!")
+else:
+    print("🔑 Deepgram API key загружен (первые 5 символов):", DEEPGRAM_API_KEY[:5])
 
 # Настройка
 bot = telebot.TeleBot(API_TOKEN)
@@ -86,9 +94,10 @@ def handle_message(message):
                 bot.reply_to(message, reply_text)
 
         except Exception as e:
-            print(f"Ошибка при обращении к OpenAI: {e}")
+            import traceback
+            print(f"Ошибка при обращении к OpenAI:\n{traceback.format_exc()}")
             if user_id == CREATOR_ID:
-                bot.reply_to(message, "Что-то пошло не так. Попробуй позже 🙃")
+                bot.reply_to(message, "⚠️ Что-то пошло не так. Попробуй позже 🙃")
 
 # ===== ОБРАБОТКА ГОЛОСОВЫХ =====
 
@@ -109,7 +118,7 @@ def handle_voice(message):
         with open(ogg_path, 'wb') as f:
             f.write(file)
 
-        # Deepgram SDK v3 — асинхронная расшифровка
+        # Deepgram SDK v3 — синхронная расшифровка
         api_key = os.getenv("DEEPGRAM_API_KEY")
         dg = DeepgramClient(api_key)
 
@@ -176,13 +185,15 @@ def handle_voice(message):
         import traceback
         error_text = traceback.format_exc()
         print(f"Ошибка при обработке голосового:\n{error_text}")
-        if user_id == CREATOR_ID:
+        if 'user_id' in locals() and user_id == CREATOR_ID:
             bot.reply_to(message, "⚠️ Не получилось обработать голосовое\n" + str(e))
             
-# Webhook
+# Webhook обработка
 @app.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
-    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    bot.process_new_updates([
+        telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
+    ])
     return "ok", 200
 
 @app.route("/", methods=["GET"])
@@ -191,7 +202,7 @@ def index():
     bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
     return "Webhook установлен", 200
 
-# Просмотр памяти
+# Просмотр памяти через браузер
 @app.route("/memory", methods=["GET"])
 def view_memory():
     token = request.args.get("key")
@@ -202,8 +213,7 @@ def view_memory():
             backup_data = backup.read()
         with open("memory_core.txt", "r", encoding="utf-8") as core:
             core_data = core.read()
-        full_memory = backup_data + "\n" + core_data
-        return f"<pre>{full_memory}</pre>", 200
+        return f"<pre>{backup_data + '\n' + core_data}</pre>", 200
     except Exception as e:
         return f"Ошибка чтения памяти: {e}", 500
 
@@ -217,7 +227,7 @@ def memory_size():
     except Exception as e:
         return f"Ошибка при получении размера: {e}", 500
 
-# 🧠 Восстановление core из backup при запуске
+# 🧠 Восстановление памяти из backup
 try:
     if not os.path.exists("memory_core.txt") or os.stat("memory_core.txt").st_size == 0:
         with open("memory_backup.txt", "r", encoding="utf-8") as backup:
@@ -230,7 +240,7 @@ try:
 except Exception as e:
     print(f"⚠️ Ошибка при восстановлении памяти: {e}")
 
-# 📍 Запуск
+# 📍 Запуск Flask-приложения
 if __name__ == "__main__":
     try:
         bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
@@ -239,11 +249,10 @@ if __name__ == "__main__":
         print(f"❌ Ошибка установки webhook: {e}")
 
     print("🔎 Проверка памяти при запуске")
-    print("Файл memory_core.txt существует:", os.path.exists("memory_core.txt"))
     if os.path.exists("memory_core.txt"):
-        print("Размер:", os.path.getsize("memory_core.txt"), "байт")
+        print("Файл memory_core.txt найден. Размер:", os.path.getsize("memory_core.txt"), "байт")
     else:
-        print("Файл не найден!")
+        print("⚠️ Файл memory_core.txt не найден!")
 
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
