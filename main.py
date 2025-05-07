@@ -117,28 +117,43 @@ async def transcribe_voice(file_path):
         response = await dg.transcription.prerecorded(source, options)
         return response['results']['channels'][0]['alternatives'][0]['transcript']
 
-@bot.message_handler(content_types=['voice'])
+@bot.message_handler(content_types=['voice', 'audio'])
 def handle_voice(message):
-    print("📥 Голосовое сообщение получено")
+    print("📥 Голосовое или аудиосообщение получено")
 
     try:
+        # Определяем ID пользователя
         user_id = message.from_user.id if message.from_user else CREATOR_ID
         chat_id = message.chat.id
         print(f"👤 user_id: {user_id}, chat_id: {chat_id}")
 
-        file_info = bot.get_file(message.voice.file_id)
+        # Проверяем, что есть voice или audio
+        if message.voice:
+            file_id = message.voice.file_id
+            print("🎙️ Тип: voice")
+        elif message.audio:
+            file_id = message.audio.file_id
+            print("🎵 Тип: audio")
+        else:
+            print("❌ Нет подходящего voice/audio файла")
+            return
+
+        # Получаем файл и сохраняем
+        file_info = bot.get_file(file_id)
         file = bot.download_file(file_info.file_path)
         print("📁 Файл скачан с Telegram")
 
-        ogg_path = f"voice/{message.voice.file_id}.ogg"
+        ogg_path = f"voice/{file_id}.ogg"
         with open(ogg_path, 'wb') as f:
             f.write(file)
         print("✅ Файл сохранён локально:", ogg_path)
 
+        # Расшифровка
         print("🔄 Отправляем в Deepgram для расшифровки...")
         user_input = asyncio.run(transcribe_voice(ogg_path))
         print("🗣️ Расшифровка получена:", user_input)
 
+        # Логирование
         log_raw(user_id, user_input)
 
         if is_creator_or_channel(user_id, chat_id):
@@ -148,8 +163,9 @@ def handle_voice(message):
                 log_question(user_input)
                 print("📚 Сохранён вопрос")
 
-        # 🟢 Всегда отвечаем отправителю, что голосовое получено
-        bot.reply_to(message, "✅ Голосовое получено и добавлено в память")
+        # Отвечаем без вызова OpenAI
+        if user_id == CREATOR_ID:
+            bot.reply_to(message, "✅ Голосовое получено и добавлено в память")
 
     except Exception as e:
         print("❌ Ошибка при обработке голосового:\n", traceback.format_exc())
