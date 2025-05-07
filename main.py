@@ -160,6 +160,10 @@ def handle_voice(message):
         if 'user_id' in locals() and user_id == CREATOR_ID:
             bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
 
+@bot.message_handler(func=lambda message: True)
+def handle_any_message(message):
+    print(f"📨 Пришло сообщение типа: {message.content_type}")
+
 # === Webhook и просмотр памяти ===
 
 @app.route(f"/{API_TOKEN}", methods=["POST"])
@@ -197,6 +201,7 @@ def memory_size():
         return f"Ошибка при получении размера: {e}", 500
 
 # === Восстановление памяти при запуске ===
+
 try:
     if not os.path.exists("memory_core.txt") or os.stat("memory_core.txt").st_size == 0:
         with open("memory_backup.txt", "r", encoding="utf-8") as backup:
@@ -209,6 +214,7 @@ except Exception as e:
     print(f"⚠️ Ошибка при восстановлении памяти: {e}")
 
 # === Запуск Flask-сервера ===
+
 if __name__ == "__main__":
     try:
         print("🔧 Принудительно переустанавливаю webhook...")
