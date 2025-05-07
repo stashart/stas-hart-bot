@@ -191,8 +191,10 @@ except Exception as e:
 # === Запуск Flask-сервера ===
 if __name__ == "__main__":
     try:
+        print("🔧 Принудительно переустанавливаю webhook...")
+        bot.remove_webhook()
         bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
-        print("✅ Webhook установлен автоматически")
+        print("✅ Webhook установлен вручную")
     except Exception as e:
         print(f"❌ Ошибка установки webhook: {e}")
 
