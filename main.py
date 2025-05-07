@@ -172,12 +172,6 @@ def handle_voice(message):
         if 'user_id' in locals() and user_id == CREATOR_ID:
             bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
 
-@bot.message_handler(func=lambda m: True)
-def _debug_all_messages(message):
-    print("📨 Пришло сообщение, content_type =", message.content_type)
-    # и вот так можно вывести весь update:
-    # print(message)
-
 # === Webhook и просмотр памяти ===
 
 @app.route(f"/{API_TOKEN}", methods=["POST"])
