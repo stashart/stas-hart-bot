@@ -160,10 +160,6 @@ def handle_voice(message):
         if 'user_id' in locals() and user_id == CREATOR_ID:
             bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
 
-@bot.message_handler(func=lambda message: True)
-def handle_any_message(message):
-    print(f"📨 Пришло сообщение типа: {message.content_type}")
-
 # === Webhook и просмотр памяти ===
 
 @app.route(f"/{API_TOKEN}", methods=["POST"])
