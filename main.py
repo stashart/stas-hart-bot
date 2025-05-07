@@ -9,6 +9,7 @@ from deepgram import Deepgram  # 🎤 Deepgram SDK v2
 import asyncio                  # ⏱ async обработка
 
 # === Константы и Инициализация переменных среды ===
+
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")              # 🔑 Токен Telegram-бота
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")         # 🔑 API ключ OpenAI
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")               # 🌐 Webhook URL
@@ -17,6 +18,7 @@ CHANNEL_ID = -1001889831695                           # 📣 ID канала @st
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")     # 🔑 Ключ Deepgram
 
 # === Инициализация библиотек ===
+
 bot = telebot.TeleBot(API_TOKEN)                      # 🤖 Telegram-бот
 openai.api_key = OPENAI_API_KEY                       # 🧠 Ключ OpenAI
 app = Flask(__name__)                                 # 🚀 Flask-приложение
@@ -24,12 +26,14 @@ os.makedirs("logs", exist_ok=True)                    # 📁 Папка лого
 os.makedirs("voice", exist_ok=True)                   # 🎤 Папка для голосовых
 
 # === Проверка ffmpeg ===
+
 if subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE).returncode == 0:
     print("🎉 ffmpeg найден")
 else:
     print("❌ ffmpeg НЕ установлен")
 
 # === Утилиты и вспомогательные функции ===
+
 def is_creator_or_channel(user_id, chat_id):
     return user_id == CREATOR_ID or chat_id == CHANNEL_ID
 
@@ -72,6 +76,7 @@ def ask_openai(user_input, memory):
     return response.choices[0].message["content"]
 
 # === Обработка текстовых сообщений ===
+
 @bot.message_handler(content_types=['text'])
 def handle_text(message):
     user_input = message.text.strip()
@@ -96,6 +101,7 @@ def handle_text(message):
 # === Обработка голосовых сообщений ===
 
 # 🎙️ Асинхронная функция расшифровки аудио через Deepgram v2
+
 async def transcribe_voice(file_path):
     dg = Deepgram(DEEPGRAM_API_KEY)
     with open(file_path, 'rb') as audio:
@@ -110,38 +116,52 @@ async def transcribe_voice(file_path):
 
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
+    print("📥 Голосовое сообщение получено")  # <== 1. Пришло голосовое
+
     try:
         user_id = message.from_user.id if message.from_user else CREATOR_ID
         chat_id = message.chat.id
+        print(f"👤 user_id: {user_id}, chat_id: {chat_id}")
 
         file_info = bot.get_file(message.voice.file_id)
         file = bot.download_file(file_info.file_path)
+        print("📁 Файл скачан с Telegram")
 
         ogg_path = f"voice/{message.voice.file_id}.ogg"
         with open(ogg_path, 'wb') as f:
             f.write(file)
+        print("✅ Файл сохранён локально:", ogg_path)
 
         # 🔁 Расшифровка через Deepgram SDK v2
+        
+        print("🔄 Отправляем в Deepgram для расшифровки...")
         user_input = asyncio.run(transcribe_voice(ogg_path))
+        print("🗣️ Расшифровка получена:", user_input)
 
-        # 📌 Вся остальная логика остаётся:
+        # 📌 Логирование
+        
         log_raw(user_id, user_input)
 
         if is_creator_or_channel(user_id, chat_id):
             save_to_memory(user_input)
+            print("📌 Записано в память")
             if user_id == CREATOR_ID:
                 log_question(user_input)
+                print("📚 Сохранён вопрос")
 
             memory = read_memory()
+            print("🧠 Память прочитана. Размер:", len(memory))
             reply_text = ask_openai(user_input, memory)
+            print("🤖 Ответ от OpenAI:", reply_text)
             bot.reply_to(message, reply_text)
 
     except Exception as e:
-        print(f"Ошибка при обработке голосового:\n{traceback.format_exc()}")
+        print("❌ Ошибка при обработке голосового:\n", traceback.format_exc())
         if 'user_id' in locals() and user_id == CREATOR_ID:
             bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
 
 # === Webhook и просмотр памяти ===
+
 @app.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
     print("📩 Пришёл webhook от Telegram")  # 🔍 Показываем, что Telegram стучится
