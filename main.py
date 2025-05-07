@@ -148,13 +148,11 @@ def handle_voice(message):
                 log_question(user_input)
                 print("📚 Сохранён вопрос")
 
-            memory = read_memory()
-            print("🧠 Память прочитана. Размер:", len(memory))
-            reply_text = ask_openai(user_input, memory)
-            print("🤖 Ответ от OpenAI:", reply_text)
-            bot.reply_to(message, reply_text)
+        # 💬 Фиксированный ответ без вызова GPT
+        if user_id == CREATOR_ID:
+            bot.reply_to(message, "✅ Голосовое получено и добавлено в память")
 
-    except Exception as e:  # ✅ теперь всё на своём месте
+    except Exception as e:
         print("❌ Ошибка при обработке голосового:\n", traceback.format_exc())
         if 'user_id' in locals() and user_id == CREATOR_ID:
             bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
