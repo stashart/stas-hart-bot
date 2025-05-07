@@ -83,15 +83,15 @@ def handle_text(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
 
-    log_raw(user_id, user_input)                # 📝 Логируем
+    log_raw(user_id, user_input)  # 📝 Логируем
 
-    if is_creator_or_channel(user_id, chat_id): # 📌 Если сообщение от Стаса или канала
+    if is_creator_or_channel(user_id, chat_id):  # 📌 Если сообщение от Стаса или канала
         save_to_memory(user_input)
         if user_id == CREATOR_ID:
-            log_question(user_input)           # 📚 Сохраняем вопрос
+            log_question(user_input)  # 📚 Сохраняем вопрос
 
         try:
-            memory = read_memory()             # 🧠 Читаем память
+            memory = read_memory()  # 🧠 Читаем память
             reply_text = ask_openai(user_input, memory)  # 🤖 Ответ от GPT
             bot.reply_to(message, reply_text)  # 🔁 Ответ пользователю
         except Exception as e:
@@ -99,7 +99,7 @@ def handle_text(message):
             print("❌ Ошибка при обработке текстового сообщения:")
             print(traceback.format_exc())
             if user_id == CREATOR_ID:
-            bot.reply_to(message, "⚠️ Что-то пошло не так. Попробуй позже 🙃")
+                bot.reply_to(message, "⚠️ Что-то пошло не так. Попробуй позже 🙃")
             
 # === Обработка голосовых сообщений ===
 
