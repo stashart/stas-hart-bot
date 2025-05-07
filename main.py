@@ -94,10 +94,13 @@ def handle_text(message):
             memory = read_memory()             # 🧠 Читаем память
             reply_text = ask_openai(user_input, memory)  # 🤖 Ответ от GPT
             bot.reply_to(message, reply_text)  # 🔁 Ответ пользователю
-        except Exception:
+        except Exception as e:
+            import traceback
+            print("❌ Ошибка при обработке текстового сообщения:")
+            print(traceback.format_exc())
             if user_id == CREATOR_ID:
-                bot.reply_to(message, "⚠️ Что-то пошло не так. Попробуй позже 🙃")
-
+            bot.reply_to(message, "⚠️ Что-то пошло не так. Попробуй позже 🙃")
+            
 # === Обработка голосовых сообщений ===
 
 # 🎙️ Асинхронная функция расшифровки аудио через Deepgram v2
