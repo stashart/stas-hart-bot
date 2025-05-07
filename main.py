@@ -119,7 +119,7 @@ async def transcribe_voice(file_path):
 
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
-    print("📥 Голосовое сообщение получено")  # <== 1. Пришло голосовое
+    print("📥 Голосовое сообщение получено")
 
     try:
         user_id = message.from_user.id if message.from_user else CREATOR_ID
@@ -135,14 +135,10 @@ def handle_voice(message):
             f.write(file)
         print("✅ Файл сохранён локально:", ogg_path)
 
-        # 🔁 Расшифровка через Deepgram SDK v2
-        
         print("🔄 Отправляем в Deepgram для расшифровки...")
         user_input = asyncio.run(transcribe_voice(ogg_path))
         print("🗣️ Расшифровка получена:", user_input)
 
-        # 📌 Логирование
-        
         log_raw(user_id, user_input)
 
         if is_creator_or_channel(user_id, chat_id):
@@ -158,10 +154,10 @@ def handle_voice(message):
             print("🤖 Ответ от OpenAI:", reply_text)
             bot.reply_to(message, reply_text)
 
-        except Exception as e:
-            print("❌ Ошибка при обработке голосового:\n", traceback.format_exc())
-            if 'user_id' in locals() and user_id == CREATOR_ID:
-                bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
+    except Exception as e:  # ✅ теперь всё на своём месте
+        print("❌ Ошибка при обработке голосового:\n", traceback.format_exc())
+        if 'user_id' in locals() and user_id == CREATOR_ID:
+            bot.reply_to(message, f"⚠️ Не получилось обработать голосовое\n{e}")
 
 # === Webhook и просмотр памяти ===
 
