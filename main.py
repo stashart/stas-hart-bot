@@ -174,8 +174,6 @@ def handle_voice(message):
 
 # === Webhook и просмотр памяти ===
 
-```python
-# === Webhook endpoint ===
 @app.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
     print("📩 Пришёл webhook от Telegram")  # 🔍 Показываем, что Telegram стучится
@@ -246,4 +244,3 @@ if __name__ == "__main__":
     # 🚀 Запуск Flask-приложения
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-```
