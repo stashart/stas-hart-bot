@@ -65,16 +65,16 @@ def ask_openai(user_input, memory):
         "Используй накопленную память, чтобы помогать и подсказывать."
     )
     response = openai.ChatCompletion.create(
-        model="gpt-4-0613",
+        model="gpt-3.5-turbo",   # более дешёвая модель
         messages=[
-            {"role": "system", "content": system_prompt + "\n\n" + memory},
-            {"role": "user", "content": user_input}
+            {"role": "system",  "content": system_prompt},
+            {"role": "user",    "content": memory + "\n\n" + user_input}
         ],
-        max_tokens=400,
-        temperature=0.8
+        max_tokens=200,         # лимит на длину ответа
+        temperature=0.7
     )
     return response.choices[0].message["content"]
-
+    
 # === Обработка текстовых сообщений ===
 
 @bot.message_handler(content_types=['text'])
