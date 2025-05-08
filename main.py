@@ -75,14 +75,6 @@ def ask_openai(user_input, memory):
     )
     return response.choices[0].message["content"]
 
-# ─── Debug-ловец — сразу после создания bot ───
-
-@bot.message_handler(func=lambda m: True)
-def debug_all_messages(message):
-    print("📨 Debug all — content_type =", message.content_type)
-    # раскомментируйте, чтобы увидеть весь объект:
-    # print(message)
-
 # === Обработка текстовых сообщений ===
 
 @bot.message_handler(content_types=['text'])
@@ -108,7 +100,15 @@ def handle_text(message):
             print(traceback.format_exc())
             if user_id == CREATOR_ID:
                 bot.reply_to(message, "⚠️ Что-то пошло не так. Попробуй позже 🙃")
-            
+
+# ─── Debug-ловец — сразу после создания bot ───
+
+@bot.message_handler(func=lambda m: True)
+def debug_all_messages(message):
+    print("📨 Debug all — content_type =", message.content_type)
+    # раскомментируйте, чтобы увидеть весь объект:
+    # print(message)
+
 # === Обработка голосовых сообщений ===
 
 # 🎙️ Асинхронная функция расшифровки аудио через Deepgram v2
