@@ -5,7 +5,7 @@ import openai
 import telebot
 from flask import Flask, request
 import subprocess
-from deepgram import Deepgram  # 🎤 Deepgram SDK v2
+from deepgram import DeepgramClient, FileSource, PrerecordedOptions  # 🎤 Deepgram SDK v4
 import asyncio                  # ⏱ async обработка
 
 # === Константы и Инициализация переменных среды ===
@@ -111,20 +111,30 @@ def debug_all_messages(message):
 
 # === Обработка голосовых сообщений ===
 
-# 🎙️ Асинхронная функция расшифровки аудио через Deepgram v2
+# 🎙️ Синхронная функция расшифровки аудио через Deepgram v4
 
-async def transcribe_voice(file_path):
-    dg = Deepgram(DEEPGRAM_API_KEY)
-    with open(file_path, 'rb') as audio:
-        source = {'buffer': audio, 'mimetype': 'audio/ogg'}
-        options = {
-            'language': 'ru',
-            'punctuate': True,
-            'model': 'general'
-        }
-        response = await dg.transcription.prerecorded(source, options)
-        return response['results']['channels'][0]['alternatives'][0]['transcript']
+def transcribe_voice(file_path: str) -> str:
+    dg = DeepgramClient(DEEPGRAM_API_KEY)
 
+    # Читаем аудио в буфер
+    with open(file_path, 'rb') as audio_file:
+        source = FileSource(
+            buffer=audio_file.read(),
+            mimetype="audio/ogg; codecs=opus"
+        )
+    # Опции: модель можно менять на "nova", "general" и т.д.
+    options = PrerecordedOptions(
+        model="nova",
+        language="ru",
+        punctuate=True
+    )
+
+    # Синхронный запрос
+    response = dg.transcription.prerecorded(source=source, options=options)
+    # Берём распознанный текст
+    transcript = response["results"]["channels"][0]["alternatives"][0]["transcript"]
+    return transcript
+    
 @bot.message_handler(content_types=['voice', 'audio'])
 def handle_voice(message):
     print("📥 Голосовое или аудиосообщение получено")
@@ -158,7 +168,7 @@ def handle_voice(message):
 
         # Расшифровка
         print("🔄 Отправляем в Deepgram для расшифровки...")
-        user_input = asyncio.run(transcribe_voice(ogg_path))
+        user_input = transcribe_voice(ogg_path)
         print("🗣️ Расшифровка получена:", user_input)
 
         # Логирование
