@@ -174,20 +174,23 @@ def handle_voice(message):
 
 # === Webhook и просмотр памяти ===
 
+```python
+# === Webhook endpoint ===
 @app.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
     print("📩 Пришёл webhook от Telegram")  # 🔍 Показываем, что Telegram стучится
-    bot.process_new_updates([
-        telebot.types.Update.de_json(request.stream.read().decode("utf-8"))  # 🔄 Обработка апдейтов
-    ])
+    raw_update = request.stream.read().decode("utf-8")
+    print("🌀 RAW UPDATE:", raw_update)
+    update = telebot.types.Update.de_json(raw_update)
+    bot.process_new_updates([update])  # 🔄 Обработка апдейтов
     return "ok", 200
 
+# === Health check endpoint ===
 @app.route("/", methods=["GET"])
 def index():
-    bot.remove_webhook()  # ❌ Удаляем старый webhook
-    bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")  # 🔗 Устанавливаем новый
-    return "Webhook установлен", 200
+    return "Service is running", 200  # 🟢 Simple health check
 
+# === Memory endpoints ===
 @app.route("/memory", methods=["GET"])
 def view_memory():
     token = request.args.get("key")
@@ -204,38 +207,43 @@ def memory_size():
     try:
         core_size = os.path.getsize("memory_core.txt")
         backup_size = os.path.getsize("memory_backup.txt")
-        return f"Размер памяти:\nCore: {core_size} байт\nBackup: {backup_size} байт", 200  # 📏 Размер файлов
+        return (
+            f"Размер памяти:\nCore: {core_size} байт\n"
+            f"Backup: {backup_size} байт"
+        ), 200  # 📏 Размер файлов
     except Exception as e:
         return f"Ошибка при получении размера: {e}", 500
 
 # === Восстановление памяти при запуске ===
-
 try:
     if not os.path.exists("memory_core.txt") or os.stat("memory_core.txt").st_size == 0:
         with open("memory_backup.txt", "r", encoding="utf-8") as backup:
-            with open("memory_core.txt", "w", encoding="utf-8") as core:
-                core.write(backup.read())     # 🔁 Восстановление из резервной копии
+            data = backup.read()
+        with open("memory_core.txt", "w", encoding="utf-8") as core:
+            core.write(data)  # 🔁 Восстановление из резервной копии
         print("🔁 Восстановлена память из memory_backup.txt")
     else:
         print("✅ Память уже есть, восстановление не требуется")
 except Exception as e:
     print(f"⚠️ Ошибка при восстановлении памяти: {e}")
 
-# === Запуск Flask-сервера ===
-
+# === Автоматическая установка webhook и запуск сервера ===
 if __name__ == "__main__":
+    # 🗑️ Удаляем старый webhook
     try:
-        print("🔧 Принудительно переустанавливаю webhook...")
         bot.remove_webhook()
-        bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
-        print("✅ Webhook установлен вручную")
+        print("🗑️ Старый webhook удалён")
     except Exception as e:
-        print(f"❌ Ошибка установки webhook: {e}")
+        print(f"❌ Ошибка при удалении webhook: {e}")
 
-    if os.path.exists("memory_core.txt"):
-        print("Файл memory_core.txt найден. Размер:", os.path.getsize("memory_core.txt"), "байт")
-    else:
-        print("⚠️ Файл memory_core.txt не найден!")
+    # 🔗 Устанавливаем новый webhook
+    try:
+        bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
+        print("✅ Webhook установлен автоматически:", f"{WEBHOOK_URL}/{API_TOKEN}")
+    except Exception as e:
+        print(f"❌ Ошибка при установке webhook: {e}")
 
+    # 🚀 Запуск Flask-приложения
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)        # 🚀 Запуск Flask-приложения
+    app.run(host="0.0.0.0", port=port)
+```
