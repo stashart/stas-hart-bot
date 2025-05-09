@@ -4,4 +4,4 @@ pyTelegramBotAPI==4.12.0  # Работа с Telegram-ботом через teleb
 pydub                     # Аудиообработка (конвертация, склейка)
 ffmpeg-python             # Обёртка для FFmpeg, работа с .ogg/.wav
 SpeechRecognition         # Распознавание речи (Google, Sphinx и т.д.)
-deepgram-sdk==3.8.0       # Deepgram SDK v3, оптимальная стабильность/скорость
+deepgram-sdk==2.12.0
