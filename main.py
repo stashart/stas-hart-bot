@@ -5,7 +5,7 @@ import openai
 import telebot
 from flask import Flask, request
 import subprocess
-from deepgram import DeepgramClient, FileSource, PrerecordedOptions  # 🎤 Deepgram SDK v4
+from deepgram import DeepgramClient, FileSource, PrerecordedOptions  # 🎤 Deepgram SDK v3
 import asyncio                  # ⏱ async обработка
 
 # === Константы и Инициализация переменных среды ===
@@ -122,15 +122,17 @@ def transcribe_voice(file_path: str) -> str:
             buffer=audio_file.read(),
             mimetype="audio/ogg; codecs=opus"
         )
-    # Опции: модель можно менять на "nova", "general" и т.д.
+        
+    # Опции: “nova” — это самая последняя (т. н. Nova-3) модель с лучшей точностью
     options = PrerecordedOptions(
-        model="nova",
+        model="nova",      # флагманская модель Deepgram v3/v4 для наивысшей точности
         language="ru",
         punctuate=True
     )
 
     # Синхронный запрос
     response = dg.transcription.prerecorded(source=source, options=options)
+    
     # Берём распознанный текст
     transcript = response["results"]["channels"][0]["alternatives"][0]["transcript"]
     return transcript
