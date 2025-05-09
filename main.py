@@ -203,10 +203,15 @@ def webhook():
     bot.process_new_updates([update])  # 🔄 Обработка апдейтов
     return "ok", 200
 
-# === Health check endpoint ===
-@app.route("/", methods=["GET"])
+@app.route("/", methods=["GET", "HEAD"])
 def index():
-    return "Service is running", 200  # 🟢 Simple health check
+    if request.method == "GET":
+        # GET от вас или вручную — переустанавливаем webhook
+        bot.remove_webhook()
+        bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
+        return "Webhook установлен", 200
+    # HEAD от UptimeRobot — просто возвращаем 200 OK
+    return "", 200
 
 # === Memory endpoints ===
 @app.route("/memory", methods=["GET"])
