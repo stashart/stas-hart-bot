@@ -1,3 +1,5 @@
+Рабочий код ChatGPT 
+
 # === Импорты и инициализация библиотек ===
 import os
 import time
@@ -5,7 +7,7 @@ import openai
 import telebot
 from flask import Flask, request
 import subprocess
-from deepgram import DeepgramClient, FileSource, PrerecordedOptions  # 🎤 Deepgram SDK v3
+from deepgram import Deepgram  # 🎤 Deepgram SDK v2
 import asyncio                  # ⏱ async обработка
 
 # === Константы и Инициализация переменных среды ===
@@ -65,16 +67,16 @@ def ask_openai(user_input, memory):
         "Используй накопленную память, чтобы помогать и подсказывать."
     )
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",   # более дешёвая модель
+        model="gpt-4-0613",
         messages=[
-            {"role": "system",  "content": system_prompt},
-            {"role": "user",    "content": memory + "\n\n" + user_input}
+            {"role": "system", "content": system_prompt + "\n\n" + memory},
+            {"role": "user", "content": user_input}
         ],
-        max_tokens=200,         # лимит на длину ответа
-        temperature=0.7
+        max_tokens=400,
+        temperature=0.8
     )
     return response.choices[0].message["content"]
-    
+
 # === Обработка текстовых сообщений ===
 
 @bot.message_handler(content_types=['text'])
@@ -111,32 +113,20 @@ def debug_all_messages(message):
 
 # === Обработка голосовых сообщений ===
 
-# 🎙️ Синхронная функция расшифровки аудио через Deepgram v4
+# 🎙️ Асинхронная функция расшифровки аудио через Deepgram v2
 
-def transcribe_voice(file_path: str) -> str:
-    dg = DeepgramClient(DEEPGRAM_API_KEY)
+async def transcribe_voice(file_path):
+    dg = Deepgram(DEEPGRAM_API_KEY)
+    with open(file_path, 'rb') as audio:
+        source = {'buffer': audio, 'mimetype': 'audio/ogg'}
+        options = {
+            'language': 'ru',
+            'punctuate': True,
+            'model': 'general'
+        }
+        response = await dg.transcription.prerecorded(source, options)
+        return response['results']['channels'][0]['alternatives'][0]['transcript']
 
-    # Читаем аудио в буфер
-    with open(file_path, 'rb') as audio_file:
-        source = FileSource(
-            buffer=audio_file.read(),
-            mimetype="audio/ogg; codecs=opus"
-        )
-        
-    # Опции: “nova” — это самая последняя (т. н. Nova-3) модель с лучшей точностью
-    options = PrerecordedOptions(
-        model="nova",      # флагманская модель Deepgram v3/v4 для наивысшей точности
-        language="ru",
-        punctuate=True
-    )
-
-    # Синхронный запрос
-    response = dg.transcription.prerecorded(source=source, options=options)
-    
-    # Берём распознанный текст
-    transcript = response["results"]["channels"][0]["alternatives"][0]["transcript"]
-    return transcript
-    
 @bot.message_handler(content_types=['voice', 'audio'])
 def handle_voice(message):
     print("📥 Голосовое или аудиосообщение получено")
@@ -170,7 +160,7 @@ def handle_voice(message):
 
         # Расшифровка
         print("🔄 Отправляем в Deepgram для расшифровки...")
-        user_input = transcribe_voice(ogg_path)
+        user_input = asyncio.run(transcribe_voice(ogg_path))
         print("🗣️ Расшифровка получена:", user_input)
 
         # Логирование
@@ -203,15 +193,10 @@ def webhook():
     bot.process_new_updates([update])  # 🔄 Обработка апдейтов
     return "ok", 200
 
-@app.route("/", methods=["GET", "HEAD"])
+# === Health check endpoint ===
+@app.route("/", methods=["GET"])
 def index():
-    if request.method == "GET":
-        # GET от вас или вручную — переустанавливаем webhook
-        bot.remove_webhook()
-        bot.set_webhook(url=f"{WEBHOOK_URL}/{API_TOKEN}")
-        return "Webhook установлен", 200
-    # HEAD от UptimeRobot — просто возвращаем 200 OK
-    return "", 200
+    return "Service is running", 200  # 🟢 Simple health check
 
 # === Memory endpoints ===
 @app.route("/memory", methods=["GET"])
